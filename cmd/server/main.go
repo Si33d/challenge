@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"net"
+	//"strings"
+	//"text/template/parse"
 )
 
 func main() {
@@ -29,7 +31,7 @@ func connectionshandle(conn net.Conn){
 	defer conn.Close()
 	buffer:=make([]byte,1024)
 	for{
-		_,err:=conn.Read(buffer)
+		n,err:=conn.Read(buffer)
 		if err!=nil{
 			if err==io.EOF{
 				fmt.Println("Client disconnected")
@@ -37,5 +39,11 @@ func connectionshandle(conn net.Conn){
 			}
 			return
 		}
+		parseRequest(buffer[:n])
 	}
+}
+func parseRequest(req []byte){
+	fmt.Println(string(req))
+	
+
 }
