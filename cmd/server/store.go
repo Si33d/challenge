@@ -4,7 +4,7 @@ type Store struct{
 	data map[string]string
 }
 
-var store=NewStore()
+var store=NewStore()//level3 done here only
 
 func NewStore() *Store{
 	return &Store{

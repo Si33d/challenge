@@ -13,7 +13,19 @@ func main() {
 	}
 	defer conn.Close()
 
-	req := "*1\r\n$4\r\nPING\r\n"
+	// ===========================
+	// Change this request to test
+	// ===========================
+
+	//req := "*3\r\n$3\r\nSET\r\n$4\r\nname\r\n$5\r\nAlice\r\n"
+
+	//req := "*2\r\n$3\r\nGET\r\n$4\r\nname\r\n"
+
+	//req := "*2\r\n$6\r\nEXISTS\r\n$4\r\nname\r\n"
+
+	// req := "*2\r\n$3\r\nDEL\r\n$4\r\nname\r\n"
+
+	 req := "*1\r\n$4\r\nPING\r\n"
 
 	_, err = conn.Write([]byte(req))
 	if err != nil {
