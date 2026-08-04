@@ -36,6 +36,22 @@ func Execute(cmd *Command) ([]byte, error) {
 			return []byte("$-1\r\n"),nil
 		}
 		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)), nil
+	
+	case "DEL":
+		if len(cmd.Args)==0{
+			return []byte("-ERR Wrong no. of arguments for 'DEL'\r\n"),nil
+		}
+		count:=store.Delete(cmd.Args...)
+		return []byte(fmt.Sprintf(":%d\r\n",count)),nil
+	
+	case "EXISTS":
+		if len(cmd.Args) != 1 {
+			return []byte("-ERR wrong number of arguments for 'EXISTS'\r\n"), nil
+		}
+		if store.Exists(cmd.Args[0]) {
+			return []byte(":1\r\n"), nil
+		}
+		return []byte(":0\r\n"), nil
 
 	default:
 		return nil, fmt.Errorf("-ERR Unknown Command %s", cmd.Name)

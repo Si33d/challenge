@@ -21,12 +21,17 @@ func (s *Store)Get(key string)(string,bool){
 	return value,ok
 }
 
-func (s *Store)Delete(key string)bool{
-	_,ok:=s.data[key]
-	if ok{
-		delete(s.data,key)
+func (s *Store)Delete(keys ...string)int{
+	count:=0
+
+	for _,key:=range keys{
+		_,ok:=s.data[key]
+		if ok{
+			delete(s.data,key)
+			count++
+		}
 	}
-	return ok
+	return count
 }
 
 func (s *Store)Exists(key string)bool{
