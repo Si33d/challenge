@@ -18,8 +18,27 @@ func Execute(cmd *Command) ([]byte, error) {
 			return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), msg)), nil
 		}
 		return []byte("-ERR Wrong no.of arguments"), nil
+
+	case "SET":
+		if len(cmd.Args)!=2{
+			return []byte("-ERR Wrong no. of arguments for SET"),nil
+		}
+		store.Set(cmd.Args[0],cmd.Args[1])
+		return []byte("+OK\r\n"),nil
+		
+
+	case "GET":
+		if len(cmd.Args)!=1{
+			return []byte("-ERR Wrong no. of arguments for Get"),nil
+		}
+		value,ok:=store.Get(cmd.Args[0])
+		if !ok{
+			return []byte("$-1\r\n"),nil
+		}
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)), nil
+
 	default:
-		return nil, fmt.Errorf("Unknown Command %s", cmd.Name)
+		return nil, fmt.Errorf("-ERR Unknown Command %s", cmd.Name)
 	}
 
 }
