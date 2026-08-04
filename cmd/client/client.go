@@ -13,12 +13,20 @@ func main() {
 	}
 	defer conn.Close()
 
-	req := "*3\r\n$3\r\nSET\r\n$4\r\nname\r\n$5\r\nAlice\r\n"
+	req := "*1\r\n$4\r\nPING\r\n"
 
 	_, err = conn.Write([]byte(req))
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("SET request sent")
+	buffer := make([]byte, 1024)
+
+	n, err := conn.Read(buffer)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Server Response:")
+	fmt.Println(string(buffer[:n]))
 }

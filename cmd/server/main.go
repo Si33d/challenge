@@ -39,17 +39,19 @@ func connectionshandle(conn net.Conn) {
 			}
 			return
 		}
-		parseRequest(buffer[:n])
+		res,err:=parseRequest(buffer[:n])
+		conn.Write(res)
 	}
 }
-func parseRequest(req []byte) {
+func parseRequest(req []byte) ([]byte, error){
 
 	parser := NewParser(req)
 	cmd, err := parser.Parse()
 	if err != nil {
 		fmt.Println("Parse error:", err)
-		return
+		return nil,err
 	}
 	fmt.Println(cmd.Name)
 	fmt.Println(cmd.Args)
+	return Execute(cmd)
 }
