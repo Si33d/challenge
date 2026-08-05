@@ -2,43 +2,76 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
+	"sync"
 )
 
 func main() {
 
-	conn, err := net.Dial("tcp", "localhost:6379")
-	if err != nil {
-		panic(err)
+	var wg sync.WaitGroup
+
+	for i := 0; i < 20; i++ {
+
+		wg.Add(1)
+
+		go func(id int) {
+
+			defer wg.Done()
+
+			conn, err := net.Dial("tcp", "localhost:6379")
+			if err != nil {
+				fmt.Printf("Client %d: %v\n", id, err)
+				return
+			}
+			defer conn.Close()
+
+			var req string
+
+			switch id % 4 {
+
+			// SET counter value-X
+			case 0:
+				value := fmt.Sprintf("value-%d", id)
+				req = fmt.Sprintf(
+					"*3\r\n$3\r\nSET\r\n$7\r\ncounter\r\n$%d\r\n%s\r\n",
+					len(value),
+					value,
+				)
+
+			// GET counter
+			case 1:
+				req = "*2\r\n$3\r\nGET\r\n$7\r\ncounter\r\n"
+
+			// EXISTS counter
+			case 2:
+				req = "*2\r\n$6\r\nEXISTS\r\n$7\r\ncounter\r\n"
+
+			// DEL counter
+			case 3:
+				req = "*2\r\n$3\r\nDEL\r\n$7\r\ncounter\r\n"
+			}
+
+			_, err = conn.Write([]byte(req))
+			if err != nil {
+				fmt.Printf("Client %d write error: %v\n", id, err)
+				return
+			}
+
+			buffer := make([]byte, 1024)
+
+			n, err := conn.Read(buffer)
+			if err != nil && err != io.EOF {
+				fmt.Printf("Client %d read error: %v\n", id, err)
+				return
+			}
+
+			fmt.Printf("Client %2d -> %q\n", id, string(buffer[:n]))
+
+		}(i)
 	}
-	defer conn.Close()
 
-	// ===========================
-	// Change this request to test
-	// ===========================
+	wg.Wait()
 
-	//req := "*3\r\n$3\r\nSET\r\n$4\r\nname\r\n$5\r\nAlice\r\n"
-
-	//req := "*2\r\n$3\r\nGET\r\n$4\r\nname\r\n"
-
-	//req := "*2\r\n$6\r\nEXISTS\r\n$4\r\nname\r\n"
-
-	// req := "*2\r\n$3\r\nDEL\r\n$4\r\nname\r\n"
-
-	 req := "*1\r\n$4\r\nPING\r\n"
-
-	_, err = conn.Write([]byte(req))
-	if err != nil {
-		panic(err)
-	}
-
-	buffer := make([]byte, 1024)
-
-	n, err := conn.Read(buffer)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Server Response:")
-	fmt.Println(string(buffer[:n]))
+	fmt.Println("\nAll clients finished.")
 }
