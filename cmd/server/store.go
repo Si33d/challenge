@@ -86,3 +86,23 @@ func(s *Store)Expire(key string,seconds int)bool{
 	s.expiry[key]=time.Now().Add(time.Duration(seconds)*time.Second)
 	return true
 }
+
+func(s *Store)TTL(key string)int{
+	mu.Lock()
+	defer mu.Unlock()
+
+	_,ok:=s.data[key]
+	if !ok{
+		return -2
+	}
+	exptime,hasexpire:=s.expiry[key]
+	if !hasexpire{
+		return -1
+	}
+	if time.Now().After(exptime){
+		delete(s.data,key)
+		delete(s.expiry,key)
+		return -2
+	}
+	return int(time.Until(exptime).Seconds())
+}

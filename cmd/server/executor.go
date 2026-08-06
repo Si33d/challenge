@@ -81,6 +81,14 @@ func Execute(cmd *Command) ([]byte, error) {
 			return []byte(":1\r\n"), nil
 		}
 		return []byte(":0\r\n"), nil
+
+	case "TTL":
+		if len(cmd.Args) != 1 {
+			return []byte("-ERR wrong number of arguments for 'TTL'\r\n"), nil
+		}
+		ttl := store.TTL(cmd.Args[0])
+		return []byte(fmt.Sprintf(":%d\r\n", ttl)), nil
+
 	default:
 		return []byte(fmt.Sprintf("-ERR unknown command '%s'\r\n", cmd.Name)), nil
 	}

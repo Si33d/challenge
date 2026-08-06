@@ -5,22 +5,21 @@ import (
 	"io"
 	"log"
 	"net"
-	//"strings"
-	//"text/template/parse"
 )
 
 func main() {
 	listener, err := net.Listen("tcp", ":6379")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
+	defer listener.Close()
 	log.Println("Redis server is listening on 6379")
 	var connection net.Conn
 	for {
 		connection, err = listener.Accept()
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Accept error:", err)
 			continue
 		}
 		go connectionshandle(connection)
@@ -29,29 +28,35 @@ func main() {
 
 func connectionshandle(conn net.Conn) {
 	defer conn.Close()
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 4096)
 	for {
 		n, err := conn.Read(buffer)
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("Client disconnected")
+				log.Println("Client disconnected")
 				break
 			}
 			return
 		}
-		res,err:=parseRequest(buffer[:n])
-		conn.Write(res)
-	}
-}
-func parseRequest(req []byte) ([]byte, error){
+		parser := NewParser(buffer[:n])
 
-	parser := NewParser(req)
-	cmd, err := parser.Parse()
-	if err != nil {
-		fmt.Println("Parse error:", err)
-		return nil,err
+		for parser.pos < len(parser.data) {
+			cmd, err := parser.Parse()
+			if err != nil {
+				_, _ = conn.Write([]byte("-ERR" + err.Error() + "\r\n"))
+				break
+			}
+			res, err := Execute(cmd)
+			if err != nil {
+				_, _ = conn.Write([]byte("-ERR" + err.Error() + "\r\n"))
+				continue
+			}
+			_, err = conn.Write(res)
+			if err != nil {
+				log.Println("Write Error", err)
+				return
+			}
+
+		}
 	}
-	fmt.Println(cmd.Name)
-	fmt.Println(cmd.Args)
-	return Execute(cmd)
 }
