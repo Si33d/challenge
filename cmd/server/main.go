@@ -28,8 +28,12 @@ func main() {
 
 func connectionshandle(conn net.Conn) {
 	defer conn.Close()
-	buffer := make([]byte, 4096)
+
+	buffer := make([]byte, 1024)
+	rembuffer:=make([]byte,0)
+	
 	for {
+
 		n, err := conn.Read(buffer)
 		if err != nil {
 			if err == io.EOF {
@@ -38,11 +42,17 @@ func connectionshandle(conn net.Conn) {
 			}
 			return
 		}
-		parser := NewParser(buffer[:n])
+		rembuffer=append(rembuffer, buffer[:n]...)
+		parser := NewParser(rembuffer)
 
 		for parser.pos < len(parser.data) {
+			start:=parser.pos
 			cmd, err := parser.Parse()
 			if err != nil {
+				if err.Error()=="incomplete bulk string" || err.Error() == "unexpected end of input"{
+					parser.pos=start
+					break
+				}
 				_, _ = conn.Write([]byte("-ERR" + err.Error() + "\r\n"))
 				break
 			}
@@ -58,5 +68,6 @@ func connectionshandle(conn net.Conn) {
 			}
 
 		}
+		rembuffer=rembuffer[parser.pos:]
 	}
 }
