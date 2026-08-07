@@ -53,18 +53,20 @@ func (s *Store) Get(key string) (string, bool) {
 	mu.RUnlock()
 	mu.Lock()
 	defer mu.Unlock()
-
-	if isexpire && time.Now().After(exptime) {
-		delete(s.data, key)
-		delete(s.expiry, key)
-		return "", false
-	}
-
 	value, ok = s.data[key]
 	if !ok {
 		return "", false
 	}
-	return value, true
+	exptime, isexpire = s.expiry[key]
+	if !isexpire {
+		return value, true
+	}
+	if time.Now().Before(exptime) {
+		return value, true
+	}
+	delete(s.data, key)
+	delete(s.expiry, key)
+	return "", false
 }
 
 func (s *Store) Delete(keys ...string) int {
@@ -76,6 +78,7 @@ func (s *Store) Delete(keys ...string) int {
 		_, ok := s.data[key]
 		if ok {
 			delete(s.data, key)
+			delete(s.expiry,key)
 			count++
 		}
 	}
@@ -83,9 +86,7 @@ func (s *Store) Delete(keys ...string) int {
 }
 
 func (s *Store) Exists(key string) bool {
-	mu.RLock()
-	defer mu.RUnlock()
-	_, ok := s.data[key]
+	_, ok :=s.Get(key)
 	return ok
 }
 
