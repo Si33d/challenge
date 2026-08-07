@@ -22,16 +22,16 @@ func NewParser(data []byte) *Parser {
 	}
 }
 
-func (p *Parser)readLine() ([]byte, error) {
+func (p *Parser) readLine() ([]byte, error) {
 	start := p.pos
 	for {
 		if p.pos+1 >= len(p.data) {
 			return nil, fmt.Errorf("unexpected end of input")
 		}
-		if p.data[p.pos]=='\r' && p.data[p.pos+1]=='\n'{
-			 	line:=p.data[start:p.pos]
-				p.pos+=2
-				return line,nil
+		if p.data[p.pos] == '\r' && p.data[p.pos+1] == '\n' {
+			line := p.data[start:p.pos]
+			p.pos += 2
+			return line, nil
 		}
 		p.pos++
 	}
@@ -95,24 +95,24 @@ func (p *Parser) readBulkString() ([]byte, error) {
 	return value, nil
 }
 
-func (p *Parser)Parse() (*Command,error){
-	count,err:=p.readArrayHeader()
-	if err!=nil{
-		return nil,err
+func (p *Parser) Parse() (*Command, error) {
+	count, err := p.readArrayHeader()
+	if err != nil {
+		return nil, err
 	}
-	values:=make([]string,0,count)
-	
-	for i:=0;i<count;i++{
-		value,err:=p.readBulkString()
-		if err!=nil{
-			return nil,err
+	values := make([]string, 0, count)
+
+	for i := 0; i < count; i++ {
+		value, err := p.readBulkString()
+		if err != nil {
+			return nil, err
 		}
-		values=append(values, string(value))
+		values = append(values, string(value))
 	}
-	cmd:=&Command{
-		Name:values[0],
-		Args:values[1:],
+	cmd := &Command{
+		Name: values[0],
+		Args: values[1:],
 	}
-	return cmd,nil
+	return cmd, nil
 
 }
