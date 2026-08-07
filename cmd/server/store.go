@@ -6,7 +6,7 @@ import (
 )
 
 type Store struct {
-	data map[string]string
+	data   map[string]string
 	expiry map[string]time.Time
 }
 
@@ -16,41 +16,55 @@ var store = NewStore() //level3 done here only
 
 func NewStore() *Store {
 	return &Store{
-		data: make(map[string]string),
+		data:   make(map[string]string),
 		expiry: make(map[string]time.Time),
 	}
 }
 
-func (s *Store) Set(key, value string,expiry *time.Time) {
+func (s *Store) Set(key, value string, expiry *time.Time) {
 	mu.Lock()
 	defer mu.Unlock()
 	s.data[key] = value
 
-	if expiry!=nil{
-		s.expiry[key]=*expiry
-	}else{
-		delete(s.expiry,key)
+	if expiry != nil {
+		s.expiry[key] = *expiry
+	} else {
+		delete(s.expiry, key)
 	}
 }
 
 func (s *Store) Get(key string) (string, bool) {
 	mu.RLock()
-	defer mu.RUnlock()
-
 	value, ok := s.data[key]
-	if !ok{
-		return "",false
+	if !ok {
+		mu.RUnlock()
+		return "", false
 	}
-	exptime,isexpire:=s.expiry[key]
-	if isexpire{
-		if time.Now().After(exptime){
-			delete(s.data,key)
-			delete(s.expiry,key)
+	exptime, isexpire := s.expiry[key]
+	if !isexpire {
+		mu.RUnlock()
+		return value, ok
+	}
 
-			return "",false
-		}
+	if time.Now().Before(exptime) {
+		mu.RUnlock()
+		return value, ok
 	}
-	return value,true
+	mu.RUnlock()
+	mu.Lock()
+	defer mu.Unlock()
+
+	if isexpire && time.Now().After(exptime) {
+		delete(s.data, key)
+		delete(s.expiry, key)
+		return "", false
+	}
+
+	value, ok = s.data[key]
+	if !ok {
+		return "", false
+	}
+	return value, true
 }
 
 func (s *Store) Delete(keys ...string) int {
@@ -75,33 +89,33 @@ func (s *Store) Exists(key string) bool {
 	return ok
 }
 
-func(s *Store)Expire(key string,seconds int)bool{
+func (s *Store) Expire(key string, seconds int) bool {
 	mu.Lock()
 	defer mu.Unlock()
 
-	_,ok:=s.data[key]
-	if !ok{
+	_, ok := s.data[key]
+	if !ok {
 		return false
 	}
-	s.expiry[key]=time.Now().Add(time.Duration(seconds)*time.Second)
+	s.expiry[key] = time.Now().Add(time.Duration(seconds) * time.Second)
 	return true
 }
 
-func(s *Store)TTL(key string)int{
+func (s *Store) TTL(key string) int {
 	mu.Lock()
 	defer mu.Unlock()
 
-	_,ok:=s.data[key]
-	if !ok{
+	_, ok := s.data[key]
+	if !ok {
 		return -2
 	}
-	exptime,hasexpire:=s.expiry[key]
-	if !hasexpire{
+	exptime, hasexpire := s.expiry[key]
+	if !hasexpire {
 		return -1
 	}
-	if time.Now().After(exptime){
-		delete(s.data,key)
-		delete(s.expiry,key)
+	if time.Now().After(exptime) {
+		delete(s.data, key)
+		delete(s.expiry, key)
 		return -2
 	}
 	return int(time.Until(exptime).Seconds())
